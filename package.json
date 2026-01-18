@@ -1,0 +1,19 @@
+{
+  "name": "anchor-app",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "backend": "cd apps/backend && npm run start:dev",
+    "frontend": "cd apps/frontend && npm run dev",
+    "ml": "cd apps/ml-service && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\" \"npm run ml\"",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

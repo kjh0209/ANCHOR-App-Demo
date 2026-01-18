@@ -1,0 +1,90 @@
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: anchor-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: anchor_guidance
+      MYSQL_USER: anchor
+      MYSQL_PASSWORD: anchor123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python ML Service (YOLO + OCR)
+  ml-service:
+    build:
+      context: ./apps/ml-service
+      dockerfile: Dockerfile
+    container_name: airport-ml-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - ./apps/ml-service:/app
+    environment:
+      - MODEL_PATH=/app/models/best.pt
+      - PYTHONUNBUFFERED=1
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # NestJS Backend API
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: anchor-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_USER=anchor
+      - DATABASE_PASSWORD=anchor123
+      - DATABASE_NAME=anchor_guidance
+      - ML_SERVICE_URL=http://ml-service:8000
+      - PORT=3001
+      - NODE_ENV=development
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+    command: npm run start:dev
+
+  # Next.js Frontend (Admin/Demo)
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: anchor-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NODE_ENV=development
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+volumes:
+  mysql_data:

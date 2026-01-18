@@ -1,0 +1,32 @@
+# dependencies
+node_modules
+**/node_modules
+
+# build outputs
+dist
+**/dist
+.next
+**/.next
+build
+**/build
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# git / ide
+.git
+.gitignore
+.vscode
+.idea
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.*
