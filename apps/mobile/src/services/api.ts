@@ -1,8 +1,170 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // API URL configuration
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.0.2.2:3001'; // Android emulator
+//const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.0.2.2:3001'; // Android emulator
+const API_URL = "http://10.249.88.14:3001"
+
+// ==================== 인증 API ====================
+export interface User {
+  id: string;
+  username: string;
+  role: 'driver' | 'passenger';
+}
+
+export const authAPI = {
+  register: async (username: string, password: string, role: 'driver' | 'passenger'): Promise<User> => {
+    const response = await axios.post(`${API_URL}/api/auth/register`, {
+      username,
+      password,
+      role,
+    });
+    return response.data;
+  },
+
+  login: async (username: string, password: string): Promise<User> => {
+    const response = await axios.post(`${API_URL}/api/auth/login`, {
+      username,
+      password,
+    });
+    return response.data;
+  },
+
+  getUser: async (userId: string): Promise<User> => {
+    const response = await axios.get(`${API_URL}/api/auth/user/${userId}`);
+    return response.data;
+  },
+
+  getUserByUsername: async (username: string): Promise<User | null> => {
+    const response = await axios.get(`${API_URL}/api/auth/user/by-username/${username}`);
+    if (response.data.error) return null;
+    return response.data;
+  },
+};
+
+// ==================== 매칭 API ====================
+export interface Match {
+  id: string;
+  driverId?: string;
+  driverUsername?: string;
+  passengerId?: string;
+  passengerUsername?: string;
+  driverConfirmed: boolean;
+  passengerConfirmed: boolean;
+  status: 'pending' | 'matched' | 'completed' | 'none';
+  driverLatitude?: number;
+  driverLongitude?: number;
+  passengerLatitude?: number;
+  passengerLongitude?: number;
+}
+
+export const matchAPI = {
+  request: async (
+    userId: string,
+    username: string,
+    role: 'driver' | 'passenger',
+    targetUsername: string
+  ): Promise<Match> => {
+    const response = await axios.post(`${API_URL}/api/match/request`, {
+      userId,
+      username,
+      role,
+      targetUsername,
+    });
+    return response.data;
+  },
+
+  getStatus: async (userId: string, role: 'driver' | 'passenger'): Promise<Match> => {
+    const response = await axios.get(`${API_URL}/api/match/status`, {
+      params: { userId, role },
+    });
+    return response.data;
+  },
+
+  getMatch: async (matchId: string): Promise<Match> => {
+    const response = await axios.get(`${API_URL}/api/match/${matchId}`);
+    return response.data;
+  },
+
+  updateGPS: async (
+    matchId: string,
+    userId: string,
+    role: 'driver' | 'passenger',
+    latitude: number,
+    longitude: number
+  ): Promise<Match> => {
+    const response = await axios.put(`${API_URL}/api/match/${matchId}/gps`, {
+      userId,
+      role,
+      latitude,
+      longitude,
+    });
+    return response.data;
+  },
+
+  cancel: async (matchId: string): Promise<void> => {
+    await axios.delete(`${API_URL}/api/match/${matchId}`);
+  },
+
+  complete: async (matchId: string): Promise<void> => {
+    await axios.post(`${API_URL}/api/match/${matchId}/complete`);
+  },
+};
+
+// ==================== 안내문 API ====================
+export interface Instruction {
+  id: string;
+  matchId: string;
+  content: string;
+  sentToPassenger: boolean;
+  detectionData?: any;
+  imageWidth?: number;
+  imageHeight?: number;
+  status?: string;
+}
+
+export const instructionAPI = {
+  create: async (
+    matchId: string,
+    content: string,
+    detectionData: any,
+    imageWidth?: number,
+    imageHeight?: number
+  ): Promise<Instruction> => {
+    const response = await axios.post(`${API_URL}/api/instruction/create`, {
+      matchId,
+      content,
+      detectionData,
+      imageWidth,
+      imageHeight,
+    });
+    return response.data;
+  },
+
+  send: async (instructionId: string): Promise<Instruction> => {
+    const response = await axios.post(`${API_URL}/api/instruction/${instructionId}/send`);
+    return response.data;
+  },
+
+  cancel: async (instructionId: string): Promise<void> => {
+    await axios.delete(`${API_URL}/api/instruction/${instructionId}/cancel`);
+  },
+
+  getPending: async (matchId: string): Promise<Instruction | { status: string }> => {
+    const response = await axios.get(`${API_URL}/api/instruction/pending`, {
+      params: { matchId },
+    });
+    return response.data;
+  },
+
+  getLatest: async (matchId: string): Promise<Instruction | null> => {
+    const response = await axios.get(`${API_URL}/api/instruction/latest`, {
+      params: { matchId },
+    });
+    return response.data;
+  },
+};
 
 export interface BoundingBox {
   x1: number;
@@ -53,11 +215,19 @@ export const detectObjects = async (request: DetectionRequest): Promise<Detectio
   const match = /\.(\w+)$/.exec(filename);
   const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-  formData.append('image', {
-    uri: imageUri,
-    name: filename,
-    type,
-  } as any);
+  if (Platform.OS === 'web') {
+    // In web, we need to fetch the blob from the URI
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    formData.append('image', blob, filename);
+  } else {
+    // In mobile (React Native), we use the object format
+    formData.append('image', {
+      uri: imageUri,
+      name: filename,
+      type,
+    } as any);
+  }
 
   // Add GPS data
   if (userMode) {
@@ -75,13 +245,10 @@ export const detectObjects = async (request: DetectionRequest): Promise<Detectio
   }
 
   try {
-    const response = await axios.post<DetectionResponse>(
+    const response = await axios.post(
       `${API_URL}/api/detection/detect`,
       formData,
       {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
         timeout: 30000, // 30 seconds
       }
     );

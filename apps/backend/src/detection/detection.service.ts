@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Detection } from './detection.entity';
 import { DetectImageDto } from './detection.dto';
 import axios from 'axios';
-import FormData from 'form-data';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const NodeFormData = require('form-data');
 
 @Injectable()
 export class DetectionService {
@@ -19,7 +20,7 @@ export class DetectionService {
 
   async detectObjects(file: Express.Multer.File, dto: DetectImageDto) {
     // Prepare form data for ML service
-    const formData = new FormData();
+    const formData = new NodeFormData();
     formData.append('image', file.buffer, {
       filename: file.originalname,
       contentType: file.mimetype,
@@ -107,7 +108,7 @@ export class DetectionService {
   async getDetectionById(id: string) {
     const detection = await this.detectionRepository.findOne({ where: { id } });
     if (!detection) {
-      throw new Error('Detection not found');
+      throw new NotFoundException('Detection not found');
     }
 
     return {

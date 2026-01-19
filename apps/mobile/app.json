@@ -16,14 +16,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.airport.pickupguidance"
+      "bundleIdentifier": "com.anchor.pickupguidance"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.airport.pickupguidance",
+      "newArchEnabled": true,
+      "package": "com.anchor.pickupguidance",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

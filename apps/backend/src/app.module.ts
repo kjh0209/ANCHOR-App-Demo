@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DetectionModule } from './detection/detection.module';
+import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { MatchModule } from './match/match.module';
+import { InstructionModule } from './instruction/instruction.module';
 
 @Module({
   imports: [
@@ -20,6 +24,10 @@ import { DetectionModule } from './detection/detection.module';
       charset: 'utf8mb4',
     }),
     DetectionModule,
+    UserModule,
+    AuthModule,
+    MatchModule,
+    InstructionModule,
   ],
 })
 export class AppModule {}

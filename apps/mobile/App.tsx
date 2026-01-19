@@ -4,11 +4,11 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import ModeSelectionScreen from './src/screens/ModeSelectionScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import CameraScreen from './src/screens/CameraScreen';
-import ResultScreen from './src/screens/ResultScreen';
-import ManualLocationScreen from './src/screens/ManualLocationScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
+import MatchingScreen from './src/screens/MatchingScreen';
+import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
+import PassengerWaitScreen from './src/screens/PassengerWaitScreen';
 
 const Stack = createStackNavigator();
 
@@ -18,7 +18,7 @@ export default function App() {
       <PaperProvider>
         <NavigationContainer>
           <Stack.Navigator
-            initialRouteName="ModeSelection"
+            initialRouteName="Login"
             screenOptions={{
               headerStyle: {
                 backgroundColor: '#2563eb',
@@ -30,29 +30,29 @@ export default function App() {
             }}
           >
             <Stack.Screen
-              name="ModeSelection"
-              component={ModeSelectionScreen}
-              options={{ title: '사용자 선택' }}
+              name="Login"
+              component={LoginScreen}
+              options={{ title: '로그인', headerShown: false }}
             />
             <Stack.Screen
-              name="Home"
-              component={HomeScreen}
-              options={{ title: '공항 픽업 안내' }}
+              name="Register"
+              component={RegisterScreen}
+              options={{ title: '회원가입' }}
             />
             <Stack.Screen
-              name="Camera"
-              component={CameraScreen}
-              options={{ title: '주행 화면 촬영' }}
+              name="Matching"
+              component={MatchingScreen}
+              options={{ title: '매칭', headerLeft: () => null }}
             />
             <Stack.Screen
-              name="Result"
-              component={ResultScreen}
-              options={{ title: '감지 결과' }}
+              name="DriverDashboard"
+              component={DriverDashboardScreen}
+              options={{ title: '기사 대시보드', headerLeft: () => null }}
             />
             <Stack.Screen
-              name="ManualLocation"
-              component={ManualLocationScreen}
-              options={{ title: '위치 수동 입력' }}
+              name="PassengerWait"
+              component={PassengerWaitScreen}
+              options={{ title: '승객 대기', headerLeft: () => null }}
             />
           </Stack.Navigator>
         </NavigationContainer>

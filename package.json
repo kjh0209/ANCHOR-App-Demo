@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/backend",
+    "apps/frontend",
+    "apps/ml-service"
   ],
   "scripts": {
     "backend": "cd apps/backend && npm run start:dev",

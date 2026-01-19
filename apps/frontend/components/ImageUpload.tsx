@@ -53,12 +53,7 @@ export default function ImageUpload({
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       const response = await axios.post(
         `${API_URL}/api/detection/detect`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
+        formData
       )
 
       onDetection(response.data)

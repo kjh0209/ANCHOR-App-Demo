@@ -1,6 +1,9 @@
 import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class BoundingBoxDto {
+// ... (omitted for brevity in instruction, but will include in actual replace)
+
   @IsNumber()
   x1: number;
 
@@ -34,18 +37,22 @@ export class DetectImageDto {
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   driver_latitude?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   driver_longitude?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   passenger_latitude?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   passenger_longitude?: number;
 }
 
