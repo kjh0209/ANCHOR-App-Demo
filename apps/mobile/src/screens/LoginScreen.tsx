@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, Card } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  Animated,
+  StatusBar,
+} from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI } from '../services/api';
+import { colors, spacing, borderRadius, typography, shadows, fonts } from '../theme';
 
 // 웹 호환 Alert
 const showAlert = (title: string, message: string) => {
@@ -16,6 +29,7 @@ export default function LoginScreen({ navigation }: any) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -38,89 +52,193 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="headlineMedium" style={styles.title}>
-            택시 픽업 안내
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            로그인하여 서비스를 이용하세요
-          </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-          <TextInput
-            label="아이디"
-            value={username}
-            onChangeText={setUsername}
-            style={styles.input}
-            mode="outlined"
-            autoCapitalize="none"
-          />
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Header / Brand Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.logoContainer}>
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              style={styles.logoGradient}
+            >
+              <Text style={styles.logoIcon}>🚕</Text>
+            </LinearGradient>
+          </View>
+          <Text style={styles.title}>ANCHOR</Text>
+          <Text style={styles.subtitle}>공항 택시 픽업 안내 서비스</Text>
+        </View>
 
-          <TextInput
-            label="비밀번호"
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-            mode="outlined"
-            secureTextEntry
-          />
+        {/* Login Form */}
+        <View style={styles.formSection}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>아이디</Text>
+            <TextInput
+              style={[
+                styles.input,
+                focusedInput === 'username' && styles.inputFocused,
+              ]}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="아이디를 입력하세요"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              onFocus={() => setFocusedInput('username')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          </View>
 
-          <Button
-            mode="contained"
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>비밀번호</Text>
+            <TextInput
+              style={[
+                styles.input,
+                focusedInput === 'password' && styles.inputFocused,
+              ]}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="비밀번호를 입력하세요"
+              placeholderTextColor={colors.textTertiary}
+              secureTextEntry
+              onFocus={() => setFocusedInput('password')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             onPress={handleLogin}
-            loading={loading}
             disabled={loading}
-            style={styles.button}
+            activeOpacity={0.85}
           >
-            로그인
-          </Button>
+            {loading ? (
+              <ActivityIndicator color={colors.textInverse} size="small" />
+            ) : (
+              <Text style={styles.loginButtonText}>로그인</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Register')}
-            style={styles.registerButton}
-          >
-            계정이 없으신가요? 회원가입
-          </Button>
-        </Card.Content>
-      </Card>
-    </KeyboardAvoidingView>
+        {/* Footer */}
+        <View style={styles.footerSection}>
+          <Text style={styles.footerText}>계정이 없으신가요?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.registerLink}>회원가입</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
-  card: {
-    padding: 10,
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    justifyContent: 'center',
+  },
+
+  // Header
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
+  },
+  logoContainer: {
+    marginBottom: spacing.lg,
+  },
+  logoGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.lg,
+  },
+  logoIcon: {
+    fontSize: 40,
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: 'bold',
-    color: '#2563eb',
+    ...typography.h1,
+    letterSpacing: 2,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    textAlign: 'center',
-    marginBottom: 24,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+
+  // Form
+  formSection: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadows.md,
+  },
+  inputContainer: {
+    marginBottom: spacing.md,
+  },
+  inputLabel: {
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
   input: {
-    marginBottom: 16,
+    height: 52,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    fontFamily: fonts.regular,
+    color: colors.textPrimary,
   },
-  button: {
-    marginTop: 8,
-    paddingVertical: 6,
+  inputFocused: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
   },
-  registerButton: {
-    marginTop: 16,
+
+  // Button
+  loginButton: {
+    height: 54,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    ...shadows.sm,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: colors.textInverse,
+    fontSize: 16,
+    fontFamily: fonts.semiBold,
+  },
+
+  // Footer
+  footerSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.xl,
+    gap: spacing.xs,
+  },
+  footerText: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  registerLink: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

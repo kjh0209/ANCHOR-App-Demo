@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Alert, Platform } from 'react-native';
-import { TextInput, Button, Text, Card, ActivityIndicator, Chip } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StatusBar,
+} from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import { matchAPI, User, Match } from '../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { colors, spacing, borderRadius, typography, shadows, fonts } from '../theme';
 
 // 웹 호환 Alert
 const showAlert = (title: string, message: string, onPress?: () => void) => {
@@ -42,6 +52,7 @@ export default function MatchingScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [match, setMatch] = useState<Match | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
 
   const checkMatchStatus = useCallback(async () => {
     try {
@@ -49,7 +60,6 @@ export default function MatchingScreen({ navigation, route }: Props) {
       if (status && status.status !== 'none') {
         setMatch(status);
         if (status.status === 'matched') {
-          // 매칭 완료 - 대시보드로 이동
           if (user.role === 'driver') {
             navigation.replace('DriverDashboard', { user, match: status });
           } else {
@@ -67,7 +77,7 @@ export default function MatchingScreen({ navigation, route }: Props) {
   useFocusEffect(
     useCallback(() => {
       checkMatchStatus();
-      const interval = setInterval(checkMatchStatus, 3000); // 3초마다 상태 확인
+      const interval = setInterval(checkMatchStatus, 3000);
       return () => clearInterval(interval);
     }, [checkMatchStatus])
   );
@@ -89,19 +99,14 @@ export default function MatchingScreen({ navigation, route }: Props) {
       setMatch(result);
 
       if (result.status === 'matched') {
-        // 매칭 완료 - 즉시 대시보드로 이동
         if (user.role === 'driver') {
           navigation.replace('DriverDashboard', { user, match: result });
         } else {
           navigation.replace('PassengerWait', { user, match: result });
         }
       } else {
-        // 매칭 대기 중 - 상태 확인을 계속함
         showAlert('매칭 대기', '상대방이 아이디를 입력하면 매칭이 완료됩니다.');
-        // 즉시 상태 확인
-        setTimeout(() => {
-          checkMatchStatus();
-        }, 500);
+        setTimeout(() => checkMatchStatus(), 500);
       }
     } catch (error: any) {
       showAlert(
@@ -136,7 +141,10 @@ export default function MatchingScreen({ navigation, route }: Props) {
   if (checking) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <View style={styles.loadingSpinner}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
         <Text style={styles.loadingText}>매칭 상태 확인 중...</Text>
       </View>
     );
@@ -144,72 +152,108 @@ export default function MatchingScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <Card style={styles.userCard}>
-        <Card.Content>
-          <View style={styles.userHeader}>
-            <Text variant="titleMedium">
-              {user.role === 'driver' ? '🚕' : '🧳'} {user.username}
-            </Text>
-            <Chip mode="outlined">
-              {user.role === 'driver' ? '택시 기사' : '승객'}
-            </Chip>
-          </View>
-        </Card.Content>
-      </Card>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="headlineSmall" style={styles.title}>
-            {user.role === 'driver' ? '승객 매칭' : '기사 매칭'}
+      {/* Profile Card */}
+      <View style={styles.profileCard}>
+        <View style={styles.profileAvatar}>
+          <Text style={styles.avatarEmoji}>
+            {user.role === 'driver' ? '🚕' : '✈️'}
           </Text>
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName}>{user.username}</Text>
+          <View style={[
+            styles.roleBadge,
+            user.role === 'driver' ? styles.driverBadge : styles.passengerBadge
+          ]}>
+            <Text style={[
+              styles.roleBadgeText,
+              user.role === 'driver' ? styles.driverBadgeText : styles.passengerBadgeText
+            ]}>
+              {user.role === 'driver' ? '택시 기사' : '승객'}
+            </Text>
+          </View>
+        </View>
+      </View>
 
-          {match && match.status === 'pending' ? (
-            <View style={styles.pendingContainer}>
-              <ActivityIndicator size="small" color="#2563eb" />
-              <Text style={styles.pendingText}>
-                상대방 대기 중...{'\n'}
-                {user.role === 'driver'
-                  ? `승객 "${match.passengerUsername || targetUsername}" 대기 중`
-                  : `기사 "${match.driverUsername || targetUsername}" 대기 중`}
-              </Text>
-              <Button mode="outlined" onPress={handleCancelMatch} style={styles.cancelButton}>
-                매칭 취소
-              </Button>
+      {/* Matching Card */}
+      <View style={styles.matchingCard}>
+        <Text style={styles.cardTitle}>
+          {user.role === 'driver' ? '승객 매칭' : '기사 매칭'}
+        </Text>
+
+        {match && match.status === 'pending' ? (
+          <View style={styles.pendingSection}>
+            <View style={styles.pendingIndicator}>
+              <View style={styles.pulseOuter}>
+                <View style={styles.pulseInner}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              </View>
             </View>
-          ) : (
-            <>
-              <Text variant="bodyMedium" style={styles.description}>
-                {user.role === 'driver'
-                  ? '픽업할 승객의 아이디를 입력하세요.'
-                  : '탑승할 택시 기사의 아이디를 입력하세요.'}
-              </Text>
+            <Text style={styles.pendingTitle}>상대방 대기 중</Text>
+            <Text style={styles.pendingSubtitle}>
+              {user.role === 'driver'
+                ? `승객 "${match.passengerUsername || targetUsername}" 대기 중`
+                : `기사 "${match.driverUsername || targetUsername}" 대기 중`}
+            </Text>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelMatch}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.cancelButtonText}>매칭 취소</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.cardDescription}>
+              {user.role === 'driver'
+                ? '픽업할 승객의 아이디를 입력하세요.'
+                : '탑승할 택시 기사의 아이디를 입력하세요.'}
+            </Text>
 
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                {user.role === 'driver' ? '승객 아이디' : '기사 아이디'}
+              </Text>
               <TextInput
-                label={user.role === 'driver' ? '승객 아이디' : '기사 아이디'}
+                style={[styles.input, inputFocused && styles.inputFocused]}
                 value={targetUsername}
                 onChangeText={setTargetUsername}
-                style={styles.input}
-                mode="outlined"
+                placeholder="아이디를 입력하세요"
+                placeholderTextColor={colors.textTertiary}
                 autoCapitalize="none"
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
               />
+            </View>
 
-              <Button
-                mode="contained"
-                onPress={handleRequestMatch}
-                loading={loading}
-                disabled={loading}
-                style={styles.button}
-              >
-                매칭 요청
-              </Button>
-            </>
-          )}
-        </Card.Content>
-      </Card>
+            <TouchableOpacity
+              style={[styles.matchButton, loading && styles.matchButtonDisabled]}
+              onPress={handleRequestMatch}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.textInverse} />
+              ) : (
+                <Text style={styles.matchButtonText}>매칭 요청</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
 
-      <Button mode="text" onPress={handleLogout} style={styles.logoutButton}>
-        로그아웃
-      </Button>
+      {/* Logout Button */}
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={handleLogout}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.logoutButtonText}>로그아웃</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -217,61 +261,197 @@ export default function MatchingScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+    padding: spacing.lg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+  },
+  loadingSpinner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   loadingText: {
-    marginTop: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
   },
-  userCard: {
-    marginBottom: 20,
-  },
-  userHeader: {
+
+  // Profile Card
+  profileCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
-  card: {
-    padding: 10,
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
   },
-  title: {
+  avatarEmoji: {
+    fontSize: 28,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    ...typography.h3,
+    marginBottom: spacing.xs,
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  driverBadge: {
+    backgroundColor: '#FFF3E0',
+  },
+  passengerBadge: {
+    backgroundColor: colors.primaryLight,
+  },
+  roleBadgeText: {
+    fontSize: 12,
+    fontFamily: fonts.semiBold,
+  },
+  driverBadgeText: {
+    color: colors.warning,
+  },
+  passengerBadgeText: {
+    color: colors.primary,
+  },
+
+  // Matching Card
+  matchingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadows.md,
+  },
+  cardTitle: {
+    ...typography.h2,
     textAlign: 'center',
-    marginBottom: 16,
-    fontWeight: 'bold',
-    color: '#2563eb',
+    marginBottom: spacing.sm,
   },
-  description: {
+  cardDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
+    marginBottom: spacing.lg,
+  },
+
+  // Input
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
   input: {
-    marginBottom: 16,
+    height: 52,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    color: colors.textPrimary,
   },
-  button: {
-    paddingVertical: 6,
+  inputFocused: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
   },
-  pendingContainer: {
+
+  // Buttons
+  matchButton: {
+    height: 54,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    ...shadows.sm,
   },
-  pendingText: {
-    marginTop: 16,
+  matchButtonDisabled: {
+    opacity: 0.7,
+  },
+  matchButtonText: {
+    color: colors.textInverse,
+    fontSize: 16,
+    fontFamily: fonts.semiBold,
+  },
+
+  // Pending State
+  pendingSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  pendingIndicator: {
+    marginBottom: spacing.lg,
+  },
+  pulseOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pulseInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  pendingTitle: {
+    ...typography.h3,
+    marginBottom: spacing.xs,
+  },
+  pendingSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    color: '#666',
-    lineHeight: 24,
+    marginBottom: spacing.lg,
   },
   cancelButton: {
-    marginTop: 20,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.error,
   },
+  cancelButtonText: {
+    color: colors.error,
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+  },
+
+  // Logout
   logoutButton: {
-    marginTop: 20,
+    alignItems: 'center',
+    marginTop: spacing.xl,
+    padding: spacing.md,
+  },
+  logoutButtonText: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
 });

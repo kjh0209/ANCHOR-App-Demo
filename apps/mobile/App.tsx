@@ -1,38 +1,87 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, Text } from 'react-native';
+import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import MatchingScreen from './src/screens/MatchingScreen';
 import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
 import PassengerWaitScreen from './src/screens/PassengerWaitScreen';
+import ManualLocationScreen from './src/screens/ManualLocationScreen';
+
+// Keep splash screen visible while loading fonts
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createStackNavigator();
 
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadFonts() {
+      try {
+        await Font.loadAsync({
+          // Apple SD Gothic Neo fonts
+          'AppleSDGothicNeo-Thin': require('./assets/fonts/AppleSDGothicNeoT.ttf'),
+          'AppleSDGothicNeo-UltraLight': require('./assets/fonts/AppleSDGothicNeoUL.ttf'),
+          'AppleSDGothicNeo-Light': require('./assets/fonts/AppleSDGothicNeoL.ttf'),
+          'AppleSDGothicNeo-Regular': require('./assets/fonts/AppleSDGothicNeoR.ttf'),
+          'AppleSDGothicNeo-Medium': require('./assets/fonts/AppleSDGothicNeoM.ttf'),
+          'AppleSDGothicNeo-SemiBold': require('./assets/fonts/AppleSDGothicNeoSB.ttf'),
+          'AppleSDGothicNeo-Bold': require('./assets/fonts/AppleSDGothicNeoB.ttf'),
+          'AppleSDGothicNeo-ExtraBold': require('./assets/fonts/AppleSDGothicNeoEB.ttf'),
+          'AppleSDGothicNeo-Heavy': require('./assets/fonts/AppleSDGothicNeoH.ttf'),
+        });
+        setFontsLoaded(true);
+      } catch (error) {
+        console.error('Error loading fonts:', error);
+        setFontsLoaded(true); // Continue even if fonts fail
+      }
+    }
+    loadFonts();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null; // Show nothing while loading
+  }
+
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={onLayoutRootView}>
       <PaperProvider>
         <NavigationContainer>
           <Stack.Navigator
             initialRouteName="Login"
             screenOptions={{
               headerStyle: {
-                backgroundColor: '#2563eb',
+                backgroundColor: '#FFFFFF',
+                elevation: 0,
+                shadowOpacity: 0,
+                borderBottomWidth: 1,
+                borderBottomColor: '#E5E8EB',
               },
-              headerTintColor: '#fff',
+              headerTintColor: '#191F28',
               headerTitleStyle: {
-                fontWeight: 'bold',
+                fontFamily: 'AppleSDGothicNeo-SemiBold',
+                fontSize: 17,
               },
+              headerBackTitleVisible: false,
             }}
           >
             <Stack.Screen
               name="Login"
               component={LoginScreen}
-              options={{ title: '로그인', headerShown: false }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Register"
@@ -42,7 +91,7 @@ export default function App() {
             <Stack.Screen
               name="Matching"
               component={MatchingScreen}
-              options={{ title: '매칭', headerLeft: () => null }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="DriverDashboard"
@@ -52,7 +101,12 @@ export default function App() {
             <Stack.Screen
               name="PassengerWait"
               component={PassengerWaitScreen}
-              options={{ title: '승객 대기', headerLeft: () => null }}
+              options={{ title: '안내 대기', headerLeft: () => null }}
+            />
+            <Stack.Screen
+              name="ManualLocation"
+              component={ManualLocationScreen}
+              options={{ title: '위치 설정' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
