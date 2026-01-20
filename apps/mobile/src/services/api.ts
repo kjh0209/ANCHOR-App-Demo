@@ -4,8 +4,9 @@ import { Platform } from 'react-native';
 
 // API URL configuration
 //const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.0.2.2:3001'; // Android emulator
-//const API_URL = "http://10.249.88.14:3001"
-const API_URL = "http://10.0.2.2:3001"
+const API_URL = "http://192.168.0.92:3001"
+//const API_URL = "http://localhost:3001"
+//const API_URL = "http://10.0.2.2:3001"
 // ==================== 인증 API ====================
 export interface User {
   id: string;
